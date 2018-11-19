@@ -1,3 +1,5 @@
 .ipynb_checkpoints
 results/*
 .idea
+*.jpg
+__pycache__/

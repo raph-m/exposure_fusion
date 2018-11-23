@@ -49,7 +49,7 @@ def exposure(im, sigma=0.2):
     return ans
 
 
-def weight_map(im, wc=0, ws=1, we=1):
+def weight_map(im, wc=1, ws=1, we=1):
     im = np.asarray(im).astype(float)
     im_gray = color.rgb2gray(im)
 
@@ -65,7 +65,7 @@ def normalize_weight_map(weight_maps):
     return weight_maps / a
 
 
-def eq1(images, blur=False, sigma=1.):
+def eq1(images, blur=False, sigma=10.):
     arrays = [np.asarray(im) for im in images]
 
     if blur:
@@ -86,13 +86,23 @@ def eq1(images, blur=False, sigma=1.):
 def normalize(im):
     return (im - np.min(im)) / (np.max(im) - np.min(im))
 
-def gaussian_pyramid(im, sigma=1., n=10, weight_map=True):
-    ans = np.zeros((n, ) + im.shape, dtype="f8")
+
+def gaussian_pyramid(im, sigma=15, n=10):
+    ans = np.zeros((n,) + im.shape, dtype="f8")
 
     ans[0] = im
     for i in range(1, n):
         ans[i] = filters.gaussian(ans[i - 1], sigma=sigma)
     return ans
+
+
+def gaussian_pyramid_yield(im, sigma=15, n=10):
+    last_im = im.copy()
+    yield last_im
+
+    for i in range(1, n):
+        last_im = filters.gaussian(last_im, sigma=sigma)
+        yield last_im
 
 
 def laplace_pyramid(gaussian_pyr):
@@ -104,62 +114,80 @@ def laplace_pyramid(gaussian_pyr):
 
     return laplace_pyramid
 
+
+def laplace_pyramid_yield(im, sigma=15, n=10):
+
+    current = None
+    generator = gaussian_pyramid_yield(im, sigma=sigma, n=n)
+
+    last_im = next(generator)
+
+    for i in range(1, n):
+        current = next(generator)
+
+        yield last_im - current
+
+        last_im = current
+
+    yield current
+
+
 def actual_size(x):
     return x / (8. * 1024)
 
 
+def pyramid_merge(pictures_dir, setup, wc=1, we=1, ws=1, sigma=15, n=10):
+    images = load_images_from_path(pictures_dir, setup)
+    images = [np.asarray(im) for im in images]
+    weight_maps = np.array([weight_map(a, wc=wc, we=we, ws=ws) for a in images])
+    weight_maps = normalize_weight_map(weight_maps)
+
+    weight_maps = np.array([gaussian_pyramid(weight_maps[i], n=n, sigma=sigma) for i in range(weight_maps.shape[0])])
+
+    arr_gp = np.zeros((len(images), n) + images[0].shape, dtype="f8")
+    for (i, a) in enumerate(images):
+        arr_gp[i] = gaussian_pyramid(a, n=n, sigma=sigma)
+
+    arr_lp = np.zeros(arr_gp.shape, dtype="f8")
+    for (i, a) in enumerate(images):
+        arr_lp[i] = laplace_pyramid(arr_gp[i])
+
+    del arr_gp
+
+    weight_maps = np.reshape(weight_maps, weight_maps.shape + (1,))
+    product = weight_maps * arr_lp
+
+    del weight_maps
+    del arr_lp
+
+    product = np.sum(product, axis=0)
+    product = np.sum(product, axis=0)
+
+    return product
+
+
+def pyramid_merge_low_ram(pictures_dir, setup, wc=1, we=1, ws=1, sigma=15, n=10):
+    images = load_images_from_path(pictures_dir, setup)
+    images = [np.asarray(im).astype(float) for im in images]
+    weight_maps = np.array([weight_map(a, wc=wc, we=we, ws=ws) for a in images])
+    weight_maps = normalize_weight_map(weight_maps)
+
+    product = np.zeros(images[0].shape).astype(float)
+
+    for i in range(len(images)):
+        print(i)
+        gaussian_generator = gaussian_pyramid_yield(weight_maps[i], sigma=sigma, n=n)
+        laplace_generator = laplace_pyramid_yield(images[i], sigma=sigma, n=n)
+
+        for j in range(n):
+            current_gaussian = next(gaussian_generator)
+            current_gaussian = np.reshape(current_gaussian, current_gaussian.shape + (1,))
+            current_laplace = next(laplace_generator)
+
+            product += current_gaussian * current_laplace
+
+    return product
+
+
 if __name__ == "__main__":
     pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

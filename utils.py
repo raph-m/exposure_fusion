@@ -30,7 +30,7 @@ def load_images_from_path(pictures_dir, setup):
 
 
 def contrast(im):
-    return np.abs(filters.laplace(filters.gaussian(im)))
+    return np.abs(filters.laplace(im)) + 1.
 
 
 def saturation(im):
@@ -61,7 +61,15 @@ def weight_map(im, wc=1, ws=1, we=1):
 def normalize_weight_map(weight_maps):
     a = np.sum(weight_maps, axis=0)
     a = a.reshape((1,) + a.shape)
-    a += 0.00000000001
+
+    count = 0
+    for i in range(a.shape[1]):
+        for j in range(a.shape[2]):
+            if a[0, i, j] == 0.:
+                count += 1
+                weight_maps[:, i, j] = 1. / weight_maps.shape[0]
+                a[0, i, j] = 1.
+    print("count: ", count)
     return weight_maps / a
 
 

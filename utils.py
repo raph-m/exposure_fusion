@@ -36,6 +36,11 @@ def contrast(im):
 def saturation(im):
     avg = np.mean(im, axis=(0, 1))
     saturation = abs(im - avg)
+
+    # ok alors la je me suis planté je pense c'est plutot:
+    # saturation = np.std(im, axis=3)
+
+
     # ici ils disent pas si il faut multiplier ou sommer, mais comme pour la well-exposedness
     # ils font une multiplication, je pense qu'il faut faire pareil ici
     return np.prod(saturation, axis=2)

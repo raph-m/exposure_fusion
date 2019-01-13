@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import os
 from PIL import Image
+import colorsys
 import numpy as np
 from skimage import filters, color
 from scipy.ndimage.filters import laplace
@@ -33,17 +34,20 @@ def contrast(im):
     return np.abs(filters.laplace(im)) + 1.
 
 
-def saturation(im):
-    avg = np.mean(im, axis=(0, 1))
-    saturation = abs(im - avg)
+def saturation(im, version = 'new'):
+    #Ancienne version de raph
+    if version == 'old' :
+        avg = np.mean(im, axis=(0, 1))
+        saturation = abs(im - avg)
+        # ici ils disent pas si il faut multiplier ou sommer, mais comme pour la well-exposedness
+        # ils font une multiplication, je pense qu'il faut faire pareil ici
+        result = np.prod(saturation, axis=2)
+        print(result.shape)
+        return result
+    if version == 'new' :
+        return np.std(im, axis=2)
 
-    # ok alors la je me suis planté je pense c'est plutot:
-    # saturation = np.std(im, axis=3)
 
-
-    # ici ils disent pas si il faut multiplier ou sommer, mais comme pour la well-exposedness
-    # ils font une multiplication, je pense qu'il faut faire pareil ici
-    return np.prod(saturation, axis=2)
 
 
 def exposure(im, sigma=0.2):
@@ -177,6 +181,9 @@ def pyramid_merge(pictures_dir, setup, wc=1, we=1, ws=1, sigma=15, n=10):
     product = np.sum(product, axis=0)
 
     return product
+
+def percentage_outofbound(product):
+    return ((product > 255).sum() + (product < 0).sum())/(product.shape[0]*product.shape[1])
 
 
 def pyramid_merge_low_ram(pictures_dir, setup, wc=1, we=1, ws=1, sigma=15, n=10):

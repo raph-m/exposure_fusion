@@ -1,4 +1,4 @@
-# exposure_fusion
+# Exposure Fusion
 Group project for MVA 2018 course "Introduction to Numerical Imaging"
 
 We propose a python3 implementation of the exposure fusion algorithm based on Laplacian pyramid computation and merging.
@@ -8,6 +8,6 @@ The file utils.py gathers all the useful functions to run the algorithm, and the
 
 
 
-# References
+## References
 
 Mertens, Tom & Kautz, Jan & Van Reeth, Frank. (2007). Exposure Fusion. Pacific Graphics. 382 - 390. 10.1109/PG.2007.17. 
